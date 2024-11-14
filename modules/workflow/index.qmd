@@ -50,7 +50,7 @@ Let's first make sure we've set up the tools
 ## Git
 
 1. Git can get extremely complicated
-2. I wrote a whole paper about it [@vuorreCuratingResearchAssets2018], but still Kagi everything
+2. I wrote a whole paper about it [@vuorreCuratingResearchAssets2018], but still [Kagi](https://kagi.com/welcome) everything
 3. We want to know just enough and not more
     a. <https://happygitwithr.com/>
     b. <https://docs.github.com/en/get-started/using-github/github-flow>
