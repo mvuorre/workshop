@@ -1,0 +1,130 @@
+---
+title: "Workflow"
+description: Many modern statistical methods require some programming. This is especially true of bayesian modeling. But how do I best write code that others can use, understand, and collaborate on? How do I seek help effectively? We take a look at writing reproducible examples, the version control tool Git, and the code collaboration platform GitHub.
+session: 1
+---
+
+:::{.content-visible unless-format="revealjs"}
+:::{.callout-note}
+You are viewing the session notebook. Click [here](deck.html) for slides.
+:::
+:::
+
+## Problem
+
+Generally, we want to
+
+- Do Bayesian data analyses
+- Write reproducible code
+- Seek help effectively
+- Collaborate with others
+- Make code/work available?
+
+In this intro, we look at tools that facilitate achieving these goals. The more complex your analyses get, the more helpful these tools (might?) be.
+
+## Set-up
+
+Let's first make sure we've set up the tools
+
+:::{.incremental}
+1. [ ] [Install Git](https://happygitwithr.com/install-git)
+2. [ ] Run `git --version` in a terminal
+    a. To ensure Git works
+3. [ ] Create a [GitHub](https://github.com) account
+4. [ ] Run `git clone https://github.com/mvuorre/workshop`
+    a. Help connecting to GitHub [here](https://happygitwithr.com/https-pat>)
+:::
+
+## Git
+
+1. Git is a version control tool---a program on your computer
+2. Organize projects into **repo**sitories
+    a. Local repository: `~/Users/matti/Documents/workshop/` (actually `~/Users/matti/Documents/workshop/.git`)
+    b. Remote repository: `https://github.com/mvuorre/workshop.git`
+3. Functions to
+    a. Commit states to history
+    b. Push and pull history from/to remote repository
+    c. and more...
+4. Powers most software collaborations
+
+## Git
+
+1. Git can get extremely complicated
+2. I wrote a whole paper about it [@vuorreCuratingResearchAssets2018], but still Kagi everything
+3. We want to know just enough and not more
+    a. <https://happygitwithr.com/>
+    b. <https://docs.github.com/en/get-started/using-github/github-flow>
+    c. <https://www.atlassian.com/git/tutorials/comparing-workflows>
+
+## GitHub
+
+1. GitHub is a Microsoft-owned developer platform owned by Microsoft
+2. GH hosts remote Git repositories with interesting additions ([live demo](https://github.com/mvuorre/workshop))
+3. Get the workshop's source code from GitHub:
+
+```bash
+# In a directory where you're comfortable putting stuff
+git clone https://github.com/mvuorre/workshop.git
+cd brms-workshop.git
+```
+
+There are many alternative services such as [GitLab](https://about.gitlab.com/) and [Codeberg](https://codeberg.org/).
+
+## Collaborating with Git and GitHub
+
+General workflow for contributing to others' projects
+
+1. Find a problem and let the author know about it
+    a. --> Submit an issue
+2. Fix the problem and submit your fix
+    a. --> Submit a "pull request"
+3. In many cases want to show examples of what's going wrong and how
+    a. Reproducible example
+    b. Idea applies equally to e.g. seeking help for your own problems on forums etc.
+
+## Reproducible examples
+
+1. Learn: <https://speakerdeck.com/jennybc/reprex-reproducible-examples-with-r>
+2. Example: <https://github.com/mvuorre/brms-workshop/issues/1>
+
+## Practice 1 {background-color="#f0f2f4"}
+
+1. Create a reproducible example
+2. Submit your reprex as a new "example" issue at <https://github.com/mvuorre/workshop/issues>
+3. We'll solve your problems together
+
+## Practice 2
+
+Live example: Contributing to common repo (<https://www.atlassian.com/git/tutorials/comparing-workflows>)
+
+1. Get added as collaborator to <https://github.com/brms-workshop/stuff>
+2. `git clone https://github.com/brms-workshop/stuff.git`
+3. Find code that needs fixing, and let others know with an issue
+4. Fix code in a new branch
+    a. e.g. Create a new file---this is an example.
+5. Submit branch to GitHub and open a pull request
+6. Discuss changes with others in pull request
+
+## Practice 3
+
+Live example: Contributing to someone else's repo
+
+1. Fork the [workshop repo](https://github.com/mvuorre/workshop) to your GitHub account
+2. Clone your remote repo to your computer
+    a. `git clone https://github.com/{your-name}/workshop.git`
+3. Make changes
+    a. For example, fix the `reprex.R` file
+4. Push local changes to your remote
+5. Open a pull request
+6. Discuss changes with others in pull request
+
+## Wrap-up
+
+- Bayesian statistics?!?
+- Reproducible examples are *essential* for seeking help
+    - There will come a time when you need help!
+- Proper tools help us collaborate better
+    - <https://www.youtube.com/watch?v=8qzVV7eEiaI>
+- Visibility
+    - Can choose public/private repos
+    - Be careful if this is something you're concerned about

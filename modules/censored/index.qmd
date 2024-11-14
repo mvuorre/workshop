@@ -1,0 +1,142 @@
+---
+title: "Censored outcomes"
+---
+
+```{r}
+#| label: setup
+
+# Packages
+library(scales)
+library(knitr)
+library(here)
+library(janitor)
+library(latex2exp)
+library(brms)
+library(distributional)
+library(posterior)
+library(patchwork)
+library(tidybayes)
+library(ggdist)
+library(tidyverse)
+
+# Some settings common to all modules
+source(here("modules/_common.R"))
+```
+
+## Example data
+
+Experiment 1 from @metcalfe2022:
+
+> Procedure. Ninety general information questions (see theonline supplemental material) from Nelson and Narens’ (1980) norms, as updated in Bloom et al. (2018), were presented in a random order. The participant typed in an answer and then made a con dence judgment about the correctness of their answer on a sliding scale from 0% (not at all confident) to 100% (completely confident). They were then given yes/no feedback about the correctness of their answer. If incorrect, they rated their curiosity to find out the correct answer on a sliding scale from 0% (do not care) to 100% (care very much).
+
+```{r}
+dat <- read_rds(here("data/metcalfe.rds"))
+
+dat <- dat |> 
+  mutate(
+    confidence = confidence / 100,
+    curiosity = curiosity / 100
+  )
+
+head(dat) |> 
+  kable()
+```
+
+```{r}
+dat <- dat |> 
+  mutate(
+    cl_confidence = case_when(
+      confidence == 0 ~ "left",
+      confidence == 1 ~ "right",
+      TRUE ~ "none"
+    ),
+    cl_curiosity = case_when(
+      curiosity == 0 ~ "left",
+      curiosity == 1 ~ "right",
+      TRUE ~ "none"
+    )
+  )
+
+head(dat) |> 
+  kable()
+```
+
+```{r}
+pa <- dat |> 
+  ggplot(aes(confidence, fill = accuracy)) +
+  scale_fill_brewer(
+    "Accuracy",
+    palette = "Set1"
+  ) +
+  geom_histogram(position = "dodge")
+
+pb <- pa %+% 
+  filter(
+    pa$data, 
+    subject %in% sample(unique(dat$subject), 9)
+  ) +
+  facet_wrap("subject")
+
+(pa | pb) + 
+  plot_layout(guides = "collect", axis_titles = "collect")
+```
+
+## Models
+
+```{r}
+bf_g <- bf(
+  confidence ~
+    1 + accuracy +
+    (1 + accuracy | subject) 
+) +
+  gaussian()
+
+fitg <- brm(
+  bf_g,
+  data = dat,
+  control = list(adapt_delta = .95),
+  file = here("models/censored-0")
+)
+```
+
+```{r}
+bf_c <- bf(
+  confidence | cens(cl_confidence) ~
+    1 + accuracy +
+    (1 + accuracy | subject) 
+) +
+  gaussian()
+
+fitc <- brm(
+  bf_c,
+  data = dat,
+  control = list(adapt_delta = .95),
+  file = here("models/censored-1")
+)
+```
+
+## Summary
+
+```{r}
+summary(fitg)
+summary(fitc)
+```
+
+## Model comparison
+
+```{r}
+#| echo: true
+#| results: hide
+
+# Add LOO criteria to all models
+fitg <- add_criterion(fitg, "loo")
+fitc <- add_criterion(fitc, "loo")
+```
+
+```{r}
+loo_compare(
+  fitc, fitg
+)
+```
+
+- What is happening?

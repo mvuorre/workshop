@@ -1,0 +1,16 @@
+.Rproj.user
+.Rhistory
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+
+/docs/
+/.quarto/
+.Renviron
+/models/
+/data/
+/modules/**/*_files/
+/modules/**/*_cache/
+/modules/**/*.html
+/_freeze/

@@ -1,0 +1,18 @@
+/*-- scss:defaults --*/
+
+$navbar-bg: #063559;
+$navbar-fg: #62ff88;
+
+$presentation-font-size-root: 28px;
+$presentation-line-height: 1.15;
+$presentation-heading-line-height: 1.0;
+
+/*-- scss:rules --*/
+
+.navbar-brand > img {
+  max-height: 48px;
+}
+
+.reveal .slide figure > figcaption {
+    font-size: 0.7em;
+}

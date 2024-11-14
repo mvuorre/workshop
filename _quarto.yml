@@ -1,0 +1,54 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - modules/workflow
+    - modules/models
+    - modules/ordinal
+    - modules/sdt
+    - modules/censored
+
+website:
+  title: "brms workshop"
+  repo-url: https://github.com/mvuorre/workshop
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+  page-footer:
+    left: |
+      Copyright 2024, Matti Vuorre <br>
+      [CC 4.0](LICENSE.md)
+    right: |
+      Made with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)<br>
+      [View the source on {{< fa brands github >}} GitHub](https://github.com/mvuorre/workshop)
+
+callout-appearance: simple
+freeze: auto
+knitr:
+  opts_chunk:
+    echo: true
+    message: false
+    warning: false
+    collapse: true
+    comment: "#>"
+
+format:
+  html:
+    toc: true
+    code-fold: show
+    toc-depth: 2
+    theme: [default, custom.scss]
+
+mainfont: "Atkinson Hyperlegible"
+monofont: "Fira Code"
+bibliography: bibliography.bib
+tbl-cap-location: bottom
+
+author:
+  - name: Matti Vuorre
+    url: https://vuorre.com
+    affiliation: Tilburg University
+    affiliation-url: https://www.tilburguniversity.edu/staff/m-j-vuorre
+    orcid: 0000-0001-5052-066X

@@ -1,0 +1,622 @@
+---
+title: "Ordinal Models"
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(knitr)
+library(here)
+library(scales)
+library(janitor)
+library(broom)
+library(ggdist)
+library(rstan)
+library(brms)
+library(ordinal)
+library(patchwork)
+library(tidyverse)
+
+source(here("modules/_common.R"))
+```
+
+# Introduction {background-color="black"}
+
+## What are ordinal data
+
+![A mood item](../../images/mood-item.png){#fig-mood-item}
+
+- Ordinal data are common in psychology
+- Most common are Likert items
+- But also e.g. [item above](https://wongbakerfaces.org/); school grades; number of forks you own; discrete temporal data
+
+## Methods for analysis
+
+- Metric models
+  - Models that assume outcomes have a continuous distribution, e.g. *t*-test
+  - Overestimate information in data; common & "simple"
+- [Nonparametric statistics](https://lindeloev.github.io/tests-as-linear/)
+  - e.g. analyses of signed ranks (R: `?wilcox.test`, etc.)
+  - Underestimate information in data; don't scale well
+- Ordinal models
+  - A zoo of models that treat outcomes appropriately as ordered categories
+  - Let's learn more!
+  - "Ordinal Regression Models in Psychology: A Tutorial" [@bürkner2019]
+
+## "Analyzing ordinal data with metric models: What could possibly go wrong?"
+
+- [Liddell and Kruschke](https://doi.org/10.1016/j.jesp.2018.08.009) surveyed 68 Psychology articles that analysed ordinal data, and found that *every* article used metric models [-@liddell2018]
+- Metric models on ordinal data can lead to false alarms, failures to detect true effects, distorted effect size estimates, and *inversions* of effects
+- Three main shortcomings of metric models:
+  - Response categories may not be (e.g. psychologically) equidistant
+  - Responses can be non-normally distributed
+  - Can treat differences in variances of underlying variable inappropriately
+- I don't mean to be an alarmist, or ignore practical considerations. We don't know the empirical rate of differences. But...
+
+## "Analyzing ordinal data with metric models: What could possibly go wrong?"
+
+```{r}
+#| label: fig-movies-bars
+#| fig-cap: IMDB ratings of two movies.
+#| fig-height: 3
+#| fig-width: 7
+
+movies <- read_rds(here("data/movie-data.rds"))
+movies510 <- filter(movies, movie %in% c(5, 10))
+movies510 <- pivot_longer(
+  movies510,
+  cols = -c(movie, title),
+  names_to = "Rating",
+  names_transform = ~str_remove(.x, "n") |> as.integer(),
+  values_to = "Count"
+) |>
+  uncount(Count)
+movies510 |>
+  ggplot(aes(Rating)) +
+  geom_histogram(binwidth = .5, center = 0) +
+  scale_y_continuous(expand = expansion(c(0, .1))) +
+  facet_wrap("movie", nrow = 1, labeller = label_both)
+```
+
+```{r}
+#| label: movies-ttest
+
+y <- t.test(scale(Rating) ~ movie, data = movies510)
+y <- tidy(y)
+# Reverse because t-test subtracts latter level from former
+y <- mutate(y, across(where(is.numeric), ~ -round(., 2)))
+
+y2 <- clm(
+  ordered(Rating) ~ movie,
+  ~movie,
+  link = "probit",
+  data = movies510
+)
+y2 <- tidy(y2, conf.int = TRUE)[5, ]
+y2 <- mutate(y2, across(where(is.numeric), ~ round(., 2)))
+```
+
+- **Welch's _t_-test**: Movie 10's mean rating was significantly greater (`r str_glue("Standardized difference = {y$estimate} [{y$conf.low}, {y$conf.high}]")`)
+- **Cumulative probit model**: Movie 10's mean rating was significantly smaller (`r str_glue("Difference = {y2$estimate} [{y2$conf.low}, {y2$conf.high}]")`)
+- I cherry-picked this example *but it exists*
+
+# Cumulative model {background-color="black"}
+
+## Ordinal models
+
+- There are many different ordinal models
+- We focus on the **cumulative model** (**CM**)
+  - Generally the most useful / widely applicable model
+- IRT? SDT?
+  - Also known as graded response model, SDT model for ratings, etc...
+
+## Example data {.build}
+
+- We introduce CM in the context of a [study](https://www.pnas.org/cgi/doi/10.1073/pnas.1918477117) conducted by [@forstmann2020]
+
+```{r}
+#| label: data-load
+#| echo: true
+
+dat <- read_rds(here("data/forstmann.rds"))
+```
+
+- 1,225 festivalgoers were asked about their mood, substance use, degree of experiencing a "transformative experience"
+- The mood rating item, $Y$, had $K + 1 = 6$ categories $1, 2, ..., 6$
+
+```{r}
+#| label: tbl-data
+#| tbl-cap: First six rows of data from @forstmann2020.
+
+head(dat) |>
+  kable()
+```
+
+## Cumulative model
+
+:::{.incremental}
+
+- CM assumes that the observed categorical variable $Y$ is based on the categorization of an unobserved ("latent") variable $\tilde{Y}$ with $K$ thresholds $\tau = (\tau_1, \dots, \tau_k)$.
+- In this example, $\tilde{Y}$ has a natural interpretation as current mood
+- We assume that $\tilde{Y}$ has a normal distribution, but other choices are possible, such as (default) logistic
+- Describe the ordered distribution of responses using thresholds
+  - $Y = k \Leftrightarrow \tau_{k-1} < \tilde{Y} \leq \tau_k$
+- These thresholds give the probability of each response category
+  - $Pr(Y = k) = \Phi(\tau_k) - \Phi(\tau_{k-1})$
+- $\tilde{Y}$ is amenable to regression (without intercept)
+  - $\tilde{Y} \sim N(\eta, \sigma = 1); \ \eta = b_1x_1 +...$
+  - $Pr(Y = k \vert \eta) = \Phi(\tau_k - \eta) - \Phi(\tau_{k-1} - \eta)$
+
+:::
+
+## Cumulative model
+
+```{r}
+#| label: fig-mood-bars
+#| fig-cap: Counts of responses in six mood categories.
+#| fig-width: 4
+#| fig-height: 4
+
+tab <- count(dat, mood, name = "Count") |>
+  mutate(
+    p = Count / sum(Count),
+    cp = cumsum(p),
+    z = qnorm(cp)
+  )
+
+p0 <- tab |>
+  ggplot(aes(mood)) +
+  geom_col(aes(y = Count)) +
+  labs(x = "Mood") +
+  scale_y_continuous(expand = expansion(c(0, .1)))
+p0
+```
+
+## Cumulative model
+
+```{r}
+#| label: fig-clm-mood-1
+#| fig-cap: Distribution of latent normal mood.
+#| fig-width: 6
+#| fig-height: 4
+
+x <- tidy(ordinal::clm(ordered(mood) ~ 1, link = "probit", data = dat))
+thresholds <- pull(x, estimate)
+x <- tibble(
+  x = seq(-4, 4, by = .01),
+  y = dnorm(x)
+)
+
+p1 <- x |>
+  ggplot(aes(x, y)) +
+  geom_line(size = 1) +
+  scale_y_continuous(expand = expansion(c(0, .3))) +
+  scale_x_continuous(
+    expression(tilde(Y))
+  ) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+p1
+```
+
+## Cumulative model
+
+```{r}
+#| label: fig-clm-mood-2
+#| fig-cap: Distribution of latent normal mood with estimated thresholds.
+#| fig-width: 6
+#| fig-height: 4
+
+p1 +
+  scale_x_continuous(
+    expression(tilde(Y)),
+    breaks = thresholds,
+    labels = c(expression(tau[1]), ~ tau[2], ~ tau[3], ~ tau[4], ~ tau[5])
+  ) +
+  geom_vline(xintercept = thresholds, size = .25)
+```
+
+## Cumulative model
+
+```{r}
+#| echo: true
+
+tab <- count(dat, mood) |>
+  mutate(
+    p = n / sum(n),
+    cp = cumsum(p),
+    z = qnorm(cp)
+  )
+```
+
+```{r}
+#| label: tbl-mood
+#| tbl-cap: Calculating thresholds by hand.
+
+kable(tab, digits = 2)
+```
+
+## Cumulative model
+
+```{r}
+#| echo: true
+
+tab <- count(dat, mood) |>
+  mutate(
+    p = n / sum(n),
+    cp = cumsum(p),
+    z = qnorm(cp)
+  )
+```
+
+```{r}
+#| label: fig-calc-thres
+#| fig-cap: Illustration of how thresholds are calculated from data.
+#| fig-height: 3
+
+p2 <- tab |>
+  ggplot(aes(mood, cp)) +
+  geom_line() +
+  xlab("Mood") +
+  geom_point(shape = 21, fill = "white")
+p3 <- tab[-6, ] |>
+  ggplot(aes(mood, z)) +
+  geom_line() +
+  xlab("Threshold") +
+  geom_point(shape = 21, fill = "white")
+(p0 | p2 | p3) +
+  scale_x_continuous(breaks = 1:6)
+```
+
+## In practice
+
+```{r}
+#| echo: true
+#| eval: false
+
+library(brms) # Bayesian, slower, more flexible
+library(ordinal) # Frequentist, fast, less flexible
+```
+
+- So far we have described a weird link function + intercepts
+- Write your regressions in R (brms) modelling syntax
+- Effects on $\tilde{Y}$ are directly interpretable
+
+## My first cumulative model
+
+```{r}
+#| echo: true
+#| results: hide
+
+dat <- mutate(
+  dat, 
+  h24 = factor(h24, labels = c("No", "Yes"))
+)
+fit1 <- brm(
+  mood ~ h24,
+  family = cumulative("probit"),
+  data = dat,
+  file = here("models/ordinal-1")
+)
+```
+
+- `family = cumulative()`: CM
+- `"probit"`: $\tilde{Y} \sim {N}(\eta, \sigma = 1)$
+- `mood ~ h24`: $\eta = b_1\text{h24}$
+
+- $b_1$ is the degree to which mood is greater in people who used hallucinogens in the past 24 hours, compared to people who didn't use
+- Scale of the latent variable (standard deviations)
+
+## Cumulative model
+
+```{r}
+#| echo: true
+
+summary(fit1)
+```
+
+## Cumulative model
+
+```{r}
+#| fig-height: 8
+plot(fit1, pars = "b_", N = 6)
+```
+
+## Cumulative model
+
+```{r}
+thresholds <- fixef(fit1)[1:5, 1]
+beta1 <- fixef(fit1)[6, 1]
+x <- tibble(
+  x = seq(-4, 4, by = .01),
+  No = dnorm(x),
+  Yes = dnorm(x, beta1)
+)
+x |>
+  pivot_longer(c(No, Yes), names_to = "h24") |>
+  ggplot(aes(x, value, col = h24)) +
+  geom_vline(xintercept = thresholds, size = .25) +
+  geom_line(size = 1) +
+  scale_color_brewer(
+    "Hallucinogens past 24 hours",
+    palette = "Set1"
+  ) +
+  scale_y_continuous(expand = expansion(c(0, .3))) +
+  scale_x_continuous(
+    expression(tilde(Y)),
+    breaks = thresholds,
+    labels = c(expression(tau[1]), ~ tau[2], ~ tau[3], ~ tau[4], ~ tau[5])
+  ) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+## Cumulative model
+
+```{r}
+#| echo: true
+
+conditional_effects(fit1, categorical = TRUE)
+```
+
+## Cumulative model
+
+```{r}
+#| echo: true
+
+pp_check(fit1, "bars_grouped", group = "h24")
+```
+
+## Cumulative model
+
+- It is considered SOP to not assume equal variances when we do e.g. t tests
+- Metric models can deal terribly with different variances in $\tilde{Y}$
+- We can predict the variance (without intercept--must be fixed for baseline)
+- $Pr(Y = k \vert \eta, disc) = \Phi(disc \times (\tau_{k+1} - \eta)) - \Phi(disc \times (\tau_{k} - \eta))$
+- `disc`?
+  - IRT: Discrimination parameter (slope of response function)
+  - Predicted on the log scale $disc = exp(\eta_{disc})$
+  - $\sigma$ = $1 / exp(disc)$
+- $\tilde{Y} \sim N(\eta, 1/exp(\eta_{disc})); \ \eta = b_1x_1 +...; \eta_{disc} = g_1x_2 + ...$
+
+## Cumulative model
+
+```{r}
+#| echo: true
+#| results: hide
+
+fit2 <- brm(
+  bf(mood ~ h24) +
+    lf(disc ~ 0 + h24, cmc = FALSE),
+  family = cumulative("probit"),
+  data = dat,
+  file = here("models/ordinal-2")
+)
+```
+
+## Cumulative model
+
+```{r}
+summary(fit2)
+```
+
+## Cumulative model
+
+```{r}
+#| echo: true
+#| fig-height: 3
+
+as_draws_df(fit2, variable = "h24", regex = TRUE) |>
+  mutate(sigma_h24 = 1 / exp(b_disc_h24Yes)) |>
+  pivot_longer(contains("h24")) |>
+  ggplot(aes(value, name)) +
+  stat_histinterval()
+```
+
+## Cumulative model
+
+```{r}
+thresholds <- fixef(fit2)[1:5, 1]
+beta1 <- fixef(fit2)[6, 1]
+disc1 <- 1 / exp(fixef(fit2)[7, 1])
+x <- tibble(
+  x = seq(-4, 4, by = .01),
+  No = dnorm(x),
+  Yes = dnorm(x, beta1, disc1)
+)
+x |>
+  pivot_longer(c(No, Yes), names_to = "h24") |>
+  ggplot(aes(x, value, col = h24)) +
+  geom_vline(xintercept = thresholds, size = .25) +
+  geom_line(size = 1) +
+  scale_y_continuous(expand = expansion(c(0, .3))) +
+  scale_x_continuous(
+    expression(tilde(Y)),
+    breaks = thresholds,
+    labels = c(expression(tau[1]), ~ tau[2], ~ tau[3], ~ tau[4], ~ tau[5])
+  ) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+```
+
+# More ordinal models {background-color="black"}
+
+## Category specific effects
+
+- Cannot use CM*
+- Adjacent category model: predict decisions between categories
+
+![Adjacent category model.](../../images/acat.png){#fig-acat}
+
+
+## Category specific effects
+
+- There are two cells with no observations
+
+```{r}
+#| echo: true
+
+table(dat$h24, dat$mood)
+```
+
+- Those category-specific effects won't be identified
+- If only there was a way to inject information to the model...
+- Bayes to the rescue!
+
+```{r}
+#| echo: true
+#| results: hide
+
+weakly_informative_prior <- prior(normal(0, 1.5), class = "b")
+fit3 <- brm(
+  bf(mood ~ cs(h24)),
+  family = acat("probit"),
+  prior = weakly_informative_prior,
+  data = dat,
+  control = list(adapt_delta = .95),
+  file = here("models/ordinal-3")
+)
+```
+
+## Category specific effects
+
+```{r}
+#| echo: true
+
+summary(fit3)
+```
+
+## Category specific effects
+
+```{r}
+#| echo: true
+
+conditional_effects(fit3, categorical = TRUE)
+```
+
+## Category specific effects
+
+```{r}
+x <- conditional_effects(fit1, categorical = TRUE)[[1]]
+p1 <- x |>
+  ggplot(aes(cats__, estimate__, col = h24)) +
+  geom_pointrange(
+    aes(ymin = lower__, ymax = upper__),
+    position = position_dodge(.25)
+  ) +
+  labs(
+    subtitle = "Cumulative model",
+    x = "Response category (mood)",
+    y = "Probability"
+  )
+x <- conditional_effects(fit3, categorical = TRUE)[[1]]
+p2 <- x |>
+  ggplot(aes(cats__, estimate__, col = h24)) +
+  geom_pointrange(
+    aes(ymin = lower__, ymax = upper__),
+    position = position_dodge(.25)
+  ) +
+  labs(
+    subtitle = "Adjacent category model (CS)",
+    x = "Response category (mood)",
+    y = "Probability"
+  )
+(p1 | p2) + plot_layout(guides = "collect")
+```
+
+## Model comparison
+
+```{r}
+#| echo: true
+#| results: hide
+
+fit4 <- brm(
+  bf(mood ~ h24),
+  family = acat("probit"),
+  prior = weakly_informative_prior,
+  data = dat,
+  file = here("models/ordinal-4")
+)
+
+# Add LOO criteria to all models
+fit1 <- add_criterion(fit1, "loo")
+fit2 <- add_criterion(fit2, "loo")
+fit3 <- add_criterion(fit3, "loo")
+fit4 <- add_criterion(fit4, "loo")
+```
+
+```{r}
+loo_compare(
+  fit1, fit2, fit3, fit4
+)
+```
+
+# Objections and counterarguments {background-color="black"}
+
+## Its too difficult
+
+- ...
+- There are, of course, practical considerations
+- The weird link function and intercepts were difficult
+- Effects on latent variable are interpretable just like your betas in `lm()`
+
+## The results are the same anyway
+
+- How do you know?
+- Did you fit an ordinal model to confirm?
+- The prevalence of problems in metric models applied to ordinal data is an empirical questions, and results probably vary greatly between types of data & measures
+- Fit ordinal models whenever you can
+- Afford more nuanced interpretation of what's going on in your data
+
+# Multilevel model {background-color="black"}
+
+## So far...
+
+- We did not consider variability in mood beyond hallucinogen use
+- Modeled H as fixed effect
+- Age? Survey (different events)? Interactions??
+- Multilevel model is a kind of interaction model
+
+## Multilevel model
+
+```{r}
+fit5 <- brm(
+  bf(mood ~ h24 + (h24 | survey)),
+  family = cumulative("probit"),
+  data = dat,
+  file = here("models/ordinal-5")
+)
+```
+
+## Events
+
+```{r}
+summary(fit5)
+```
+
+## Another way to vary intercepts
+
+This is not a great idea but in theory works.
+
+```{r}
+fit6 <- brm(
+  bf(mood | resp_thres(gr = survey) ~ h24 + (0 + h24 | survey)),
+  family = cumulative("probit"),
+  data = dat,
+  file = here("models/ordinal-6")
+)
+```
+
+```{r}
+summary(fit6)
+```
