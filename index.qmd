@@ -30,7 +30,18 @@ We assume some familiarity with basic statistical modeling and the R language. I
 
 ### Build / reproduce
 
-To recreate the materials locally, run the following in your terminal, *not* R (requires GNU Make). This will download the workshop materials (all source code), and then run the required code. Note that it will run all the analysis documents, which involve bayesian models: This will take a long time. Because of this, you should first edit `.Renviron.example` to `.Renviron` to match your system settings.
+Note that building the project will run all the analysis documents, which involve bayesian models: This will take a long time. Because of this, you should first create an `.Renviron` file to describe your system settings (see `.Renviron.example`). For example,
+
+```bash
+echo "
+MAX_CORES = 8
+BRMS_BACKEND = "cmdstanr"
+BRMS_THREADS = 2
+BRMS_ITER = 1000
+" >> .Renviron
+```
+
+Then, to recreate the materials locally, run the following in your terminal, *not* R (requires GNU Make). This will download the workshop materials (all source code), and then run the required code. 
 
 ```bash
 git clone https://github.com/mvuorre/workshop.git
