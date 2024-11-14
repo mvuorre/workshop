@@ -14,7 +14,7 @@ options(
 )
 
 # Hack to allow using default N iterations
-library(brms)
-fargs <- formals(brm)
-fargs$iter <- getOption("brms.iter", 2000)
-formals(brm) <- fargs
+# library(brms)
+# fargs <- formals(brm)
+# fargs$iter <- getOption("brms.iter", 2000)
+# formals(brm) <- fargs
