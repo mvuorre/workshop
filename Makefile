@@ -1,7 +1,7 @@
 all: renv data readme render
 
 renv: renv.lock
-	R vanilla -e 'renv::restore(prompt = FALSE)'
+	R -e 'renv::restore(prompt = FALSE)'
 
 data: renv prepare-data.R
 	Rscript prepare-data.R

@@ -65,18 +65,7 @@ make
 ```
 
 If you do not have Make installed (i.e. you are on Windows), you need to
-execute the steps to build (or reproduce) manually
-
-``` bash
-# Restore R environment (packages)
-R vanilla -e 'renv::restore(prompt = FALSE)'
-
-# Prepare data
-Rscript prepare-data.R
-
-# Run everything and produce output documents (website in docs/)
-quarto render
-```
+execute the steps to build (or reproduce) manually. See `Makefile`.
 
 ## Contribute
 
