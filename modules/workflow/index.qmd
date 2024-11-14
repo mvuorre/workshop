@@ -128,5 +128,3 @@ Live example: Contributing to someone else's repo
 - Visibility
     - Can choose public/private repos
     - Be careful if this is something you're concerned about
-
-**This is an example**
