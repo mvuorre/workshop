@@ -65,7 +65,7 @@ Let's first make sure we've set up the tools
 ```bash
 # In a directory where you're comfortable putting stuff
 git clone https://github.com/mvuorre/workshop.git
-cd brms-workshop.git
+cd workshop.git
 ```
 
 There are many alternative services such as [GitLab](https://about.gitlab.com/) and [Codeberg](https://codeberg.org/).
