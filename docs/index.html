@@ -223,11 +223,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="st">BRMS_THREADS = 2</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="st">BRMS_ITER = 1000</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="st">"</span> <span class="op">&gt;&gt;</span> .Renviron</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Then, to recreate the materials locally, run the following in your terminal, <em>not</em> R (requires GNU Make). This will download the workshop materials (all source code), and then run the required code.</p>
+<p>Then, to recreate the materials locally, run the following in your terminal, <em>not</em> R. This will download the workshop materials (all source code), and then run the required code.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/mvuorre/workshop.git</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> brms-workshop.git</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>If you do not have Make installed (i.e.&nbsp;you are on Windows), you need to execute the steps to build (or reproduce) manually. See <code>Makefile</code>.</p>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="co"># (requires GNU Make)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>If you don’t have make installed (i.e.&nbsp;you are on Windows), you need to first restore the R environment, prepare the data, and then render the project:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">R</span> <span class="at">-e</span> <span class="st">'renv::restore(prompt = FALSE)'</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> prepare-data.R</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">quarto</span> render</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 </section>
 <section id="contribute" class="level2">

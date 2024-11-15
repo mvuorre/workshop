@@ -41,15 +41,21 @@ BRMS_ITER = 1000
 " >> .Renviron
 ```
 
-Then, to recreate the materials locally, run the following in your terminal, *not* R (requires GNU Make). This will download the workshop materials (all source code), and then run the required code. 
+Then, to recreate the materials locally, run the following in your terminal, *not* R. This will download the workshop materials (all source code), and then run the required code. 
 
 ```bash
 git clone https://github.com/mvuorre/workshop.git
 cd brms-workshop.git
-make
+make # (requires GNU Make)
 ```
 
-If you do not have Make installed (i.e. you are on Windows), you need to execute the steps to build (or reproduce) manually. See `Makefile`.
+If you don't have make installed (i.e. you are on Windows), you need to first restore the R environment, prepare the data, and then render the project:
+
+```bash
+R -e 'renv::restore(prompt = FALSE)'
+Rscript prepare-data.R
+quarto render
+```
 
 ## Contribute
 
