@@ -480,8 +480,11 @@ as.data.frame(y$hypothesis) %>%
 #| echo: true
 
 pp_check(
-  fit1, resp = "te", nsamples = 2,
-  type = "freqpoly_grouped", group = "survey"
+  fit1, 
+  resp = "te", 
+  ndraws = 2,
+  type = "freqpoly_grouped", 
+  group = "survey"
 )
 ```
 
@@ -490,8 +493,11 @@ pp_check(
 ```{r}
 #| echo: true
 pp_check(
-  fit1, resp = "mood", nsamples = 2,
-  type = "freqpoly_grouped", group = "survey"
+  fit1, 
+  resp = "mood", 
+  ndraws = 2,
+  type = "freqpoly_grouped", 
+  group = "survey"
 )
 ```
 

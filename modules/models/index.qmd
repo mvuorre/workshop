@@ -391,7 +391,11 @@ Once a posterior distribution is obtained, it is prudent to check whether it mak
 #| fig-height: 4
 #| fig-width: 6
 
-pp_check(fit0, type = "hist", nsamples = 5) +
+pp_check(
+  fit0, 
+  type = "hist", 
+  ndraws = 5
+) +
   scale_x_continuous("Reaction time (ms)")
 ```
 
@@ -602,7 +606,7 @@ sm(post)
 ```{r}
 #| echo: true
 
-pp_check(fit1, nsamples = 30)
+pp_check(fit1, ndraws = 30)
 ```
 
 ## Posterior predictive check
